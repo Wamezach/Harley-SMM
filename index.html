@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SMM Panel Order (Vercel API Version)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Firebase JS SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="bg-white max-w-md w-full rounded-xl shadow-lg p-8">
+    <div class="flex items-center justify-center mb-3">
+      <i class="ph ph-fire text-3xl text-red-500 mr-2"></i>
+      <h2 class="text-2xl font-bold text-blue-700 text-center">SMM Panel</h2>
+      <i class="ph ph-globe-simple text-3xl text-blue-500 ml-2"></i>
+    </div>
+    <form id="smmForm" autocomplete="off">
+      <label for="category" class="block mb-2 font-medium text-gray-700 flex items-center">
+        <i class="ph ph-list text-lg mr-2"></i>Category
+      </label>
+      <select id="category" class="w-full mb-2 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring focus:ring-blue-200">
+        <option value="">Select Category</option>
+      </select>
+      <div id="serviceName" class="mb-2 text-lg font-semibold text-gray-800"></div>
+      <div id="serviceDetails" class="mb-4 grid grid-cols-2 gap-1">
+        <div class="text-sm text-gray-700 flex items-center"><i class="ph ph-currency-circle-dollar text-lg mr-1 text-yellow-700"></i><span class="font-semibold">₱ Rate:</span> <span id="phRateText">₱0.00</span> <span class="text-xs text-gray-500">(per 1000 units)</span></div>
+        <div class="text-sm text-gray-700 flex items-center"><i class="ph ph-arrow-down text-lg mr-1 text-blue-700"></i><span class="font-semibold">Min:</span> <span id="minText">0</span></div>
+        <div class="text-sm text-gray-700 flex items-center"><i class="ph ph-arrow-up text-lg mr-1 text-red-700"></i><span class="font-semibold">Max:</span> <span id="maxText">0</span></div>
+        <div class="text-sm text-gray-700 flex items-center"><i class="ph ph-tag text-lg mr-1 text-gray-700"></i><span class="font-semibold">Type:</span> <span id="typeText">Default</span></div>
+      </div>
+      <label for="service" class="block mb-2 font-medium text-gray-700 flex items-center">
+        <i class="ph ph-check-square text-lg mr-2"></i>Service
+      </label>
+      <select id="service" class="w-full mb-4 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring focus:ring-blue-200" disabled>
+        <option value="">Select Service</option>
+      </select>
+      <label for="link" class="block mb-2 font-medium text-gray-700 flex items-center">
+        <i class="ph ph-link text-lg mr-2"></i>Link
+      </label>
+      <input type="text" id="link" placeholder="Paste link here" class="w-full mb-2 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring focus:ring-blue-200" />
+      <div id="infoText" class="mb-4 p-3 rounded-lg bg-yellow-100 border border-yellow-300 text-yellow-900 text-sm font-medium flex items-center">
+        <i class="ph ph-info text-lg mr-2"></i>
+        <span>Info about the service goes here. Min: <span id="infoMin">0</span>, Max: <span id="infoMax">0</span></span>
+      </div>
+      <label for="qty" class="block mb-2 font-medium text-gray-700 flex items-center">
+        <i class="ph ph-number-square-seven text-lg mr-2"></i>Quantity
+      </label>
+      <input type="number" id="qty" min="1" placeholder="Enter quantity" class="w-full mb-2 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring focus:ring-blue-200" />
+      
+      <!-- Optional fields -->
+      <label for="comments" class="block mb-2 font-medium text-gray-700 flex items-center">
+        <i class="ph ph-chat text-lg mr-2"></i>Comments (optional)
+      </label>
+      <input type="text" id="comments" placeholder="Comments" class="w-full mb-2 px-3 py-2 rounded-lg border border-gray-300" />
+
+      <label for="runs" class="block mb-2 font-medium text-gray-700 flex items-center">
+        <i class="ph ph-repeat text-lg mr-2"></i>Runs (optional)
+      </label>
+      <input type="number" id="runs" min="1" placeholder="Runs" class="w-full mb-2 px-3 py-2 rounded-lg border border-gray-300" />
+
+      <label for="interval" class="block mb-2 font-medium text-gray-700 flex items-center">
+        <i class="ph ph-clock text-lg mr-2"></i>Interval (optional, minutes)
+      </label>
+      <input type="number" id="interval" min="1" placeholder="Interval in minutes" class="w-full mb-2 px-3 py-2 rounded-lg border border-gray-300" />
+
+      <div id="minWarning" class="mb-2 text-red-700 font-bold hidden flex items-center"><i class="ph ph-warning text-lg mr-2"></i><span></span></div>
+      <div id="formError" class="mb-2 text-red-700 font-bold hidden flex items-center"><i class="ph ph-x-circle text-lg mr-2"></i><span></span></div>
+      <div id="orderResult" class="mb-2 text-green-700 font-bold hidden flex items-center"><i class="ph ph-check-circle text-lg mr-2"></i><span></span></div>
+      <div id="priceBox" class="w-full mb-4 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-bold text-right flex justify-end items-center">
+        <i class="ph ph-calculator text-lg mr-2"></i>Price: ₱0.00
+      </div>
+      <button type="submit" class="w-full py-3 rounded-lg bg-blue-700 text-white font-bold hover:bg-blue-900 transition flex items-center justify-center">
+        <i class="ph ph-shopping-cart text-lg mr-2"></i>Order
+      </button>
+    </form>
+  </div>
+  <script>
+    // Firebase setup
+    const firebaseConfig = {
+      apiKey: "AIzaSyAOD_WjTx_QV4NmdWOA1qn1iw2Bfhck8do",
+      authDomain: "harley1-dc7c4.firebaseapp.com",
+      projectId: "harley1-dc7c4",
+      storageBucket: "harley1-dc7c4.firebasestorage.app",
+      messagingSenderId: "364436057378",
+      appId: "1:364436057378:web:4e6a59f39f132e0dc1897b",
+      measurementId: "G-XJDDS9HC2S"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const USD_TO_PHP = 60;
+    const VIEWING_FEE_PHP = 5;
+
+    let selectedPhRate = 0;
+    let selectedServiceId = null;
+    let minQty = 1;
+    let maxQty = 999999;
+    let hasTypedQty = false;
+
+    function formatPhp(val) {
+      return "₱" + (Math.round(val * 100) / 100).toLocaleString();
+    }
+
+    async function loadCategoriesAndServices() {
+      const categoriesSet = new Set();
+      const servicesMap = {};
+      const snapshot = await db.collection("smm").get();
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.category) {
+          categoriesSet.add(data.category);
+          if (!servicesMap[data.category]) servicesMap[data.category] = [];
+          servicesMap[data.category].push({...data, id: doc.id});
+        }
+      });
+
+      const categorySelect = document.getElementById("category");
+      categoriesSet.forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        categorySelect.appendChild(opt);
+      });
+
+      categorySelect.addEventListener("change", function() {
+        const serviceSelect = document.getElementById("service");
+        serviceSelect.innerHTML = '<option value="">Select Service</option>';
+        serviceSelect.disabled = !this.value;
+        document.getElementById("serviceName").textContent = "";
+        document.getElementById("phRateText").textContent = "";
+        document.getElementById("minText").textContent = "";
+        document.getElementById("maxText").textContent = "";
+        document.getElementById("typeText").textContent = "";
+        document.getElementById("infoText").innerHTML = '<i class="ph ph-info text-lg mr-2"></i><span>Info about the service goes here. Min: <span id="infoMin">0</span>, Max: <span id="infoMax">0</span></span>';
+        document.getElementById("qty").value = "";
+        document.getElementById("qty").min = 1;
+        document.getElementById("qty").max = 999999;
+        document.getElementById("priceBox").innerHTML = '<i class="ph ph-calculator text-lg mr-2"></i>Price: ₱0.00';
+        document.getElementById("minWarning").classList.add("hidden");
+        document.getElementById("formError").classList.add("hidden");
+        document.getElementById("orderResult").classList.add("hidden");
+        hasTypedQty = false;
+        selectedServiceId = null;
+        if (this.value && servicesMap[this.value]) {
+          servicesMap[this.value].forEach(svc => {
+            const opt = document.createElement("option");
+            opt.value = svc.id;
+            opt.textContent = `${svc.name}`;
+            serviceSelect.appendChild(opt);
+          });
+        }
+      });
+
+      document.getElementById("service").addEventListener("change", function() {
+        const selectedCategory = categorySelect.value;
+        const svcData = servicesMap[selectedCategory]?.find(s => s.id === this.value);
+        if (svcData) {
+          document.getElementById("serviceName").innerHTML = `<i class="ph ph-star text-yellow-500 mr-2"></i>${svcData.name || ""}`;
+          const rateFloat = parseFloat(svcData.rate) || 0;
+          selectedPhRate = Math.round((rateFloat * USD_TO_PHP + VIEWING_FEE_PHP) * 100) / 100;
+          selectedServiceId = svcData.service || svcData.id || null;
+          document.getElementById("phRateText").textContent = formatPhp(selectedPhRate) || "₱0.00";
+          document.getElementById("minText").textContent = svcData.min || "";
+          document.getElementById("maxText").textContent = svcData.max || "";
+          document.getElementById("typeText").textContent = svcData.type || "";
+          document.getElementById("infoText").innerHTML = `<i class="ph ph-info text-lg mr-2"></i><span>${svcData.description || ""} <br>Min: <span id="infoMin">${svcData.min || ""}</span>, Max: <span id="infoMax">${svcData.max || ""}</span></span>`;
+          const qtyInput = document.getElementById("qty");
+          qtyInput.value = "";
+          minQty = Number(svcData.min) || 1;
+          maxQty = Number(svcData.max) || 999999;
+          qtyInput.min = minQty;
+          qtyInput.max = maxQty;
+          document.getElementById("priceBox").innerHTML = '<i class="ph ph-calculator text-lg mr-2"></i>Price: ₱0.00';
+          document.getElementById("minWarning").classList.add("hidden");
+          document.getElementById("formError").classList.add("hidden");
+          document.getElementById("orderResult").classList.add("hidden");
+          hasTypedQty = false;
+        }
+      });
+
+      document.getElementById("qty").addEventListener("input", function() {
+        const qty = Number(this.value);
+        const totalPhp = Math.round(selectedPhRate * (qty / 1000) * 100) / 100;
+        document.getElementById("priceBox").innerHTML = `<i class="ph ph-calculator text-lg mr-2"></i>Price: ${formatPhp(totalPhp)}`;
+        if (!hasTypedQty && qty > 0) {
+          hasTypedQty = true;
+        }
+        const minWarning = document.getElementById("minWarning");
+        if (hasTypedQty && qty !== minQty && qty > 0) {
+          minWarning.innerHTML = `<i class="ph ph-warning text-lg mr-2"></i>Min quantity is ${minQty} !!!!!`;
+          minWarning.classList.remove("hidden");
+        } else {
+          minWarning.classList.add("hidden");
+        }
+      });
+    }
+
+    loadCategoriesAndServices();
+
+    document.getElementById('smmForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const categoryVal = document.getElementById("category").value;
+      const serviceVal = document.getElementById("service").value;
+      const linkVal = document.getElementById("link").value.trim();
+      const qtyVal = document.getElementById("qty").value.trim();
+
+      let errorMsg = "";
+      if (!categoryVal) errorMsg = "Please select a category.";
+      else if (!serviceVal) errorMsg = "Please select a service.";
+      else if (!linkVal) errorMsg = "Please enter the link.";
+      else if (!qtyVal || isNaN(Number(qtyVal)) || Number(qtyVal) < minQty || Number(qtyVal) > maxQty) errorMsg = `Please enter a valid quantity (${minQty}-${maxQty}).`;
+
+      const formError = document.getElementById("formError");
+      const orderResult = document.getElementById("orderResult");
+      orderResult.classList.add("hidden");
+      if (errorMsg) {
+        formError.innerHTML = `<i class="ph ph-x-circle text-lg mr-2"></i>${errorMsg}`;
+        formError.classList.remove("hidden");
+        return;
+      } else {
+        formError.classList.add("hidden");
+      }
+
+      // Gather base params for API
+      const requestBody = {
+        service: selectedServiceId,
+        url: linkVal,
+        quantity: qtyVal
+      };
+      // Optional params
+      const commentsVal = document.getElementById("comments")?.value?.trim();
+      const runsVal = document.getElementById("runs")?.value?.trim();
+      const intervalVal = document.getElementById("interval")?.value?.trim();
+      if (commentsVal) requestBody.comments = commentsVal;
+      if (runsVal) requestBody.runs = runsVal;
+      if (intervalVal) requestBody.interval = intervalVal;
+
+      orderResult.innerHTML = `<i class="ph ph-clock-countdown text-lg mr-2"></i>Placing order...`;
+      orderResult.classList.remove("hidden");
+      orderResult.classList.remove("text-green-700","text-red-700");
+      orderResult.classList.add("text-blue-700");
+
+      try {
+        // USE YOUR VERCEL ENDPOINT HERE:
+        const response = await fetch("https://smm-proxy-bf9lsa82w-harldgreats-projects.vercel.app", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody)
+        });
+        let json;
+        if (response && response.json) {
+          try {
+            json = await response.json();
+          } catch (err) {
+            let text = "";
+            if (response && response.text) {
+              try {
+                text = await response.text();
+              } catch (err2) {
+                text = "No response text available.";
+              }
+            }
+            orderResult.innerHTML = `<i class="ph ph-x-circle text-lg mr-2"></i>Network/API Error: ${err} ${text}`;
+            orderResult.classList.remove("text-green-700","text-blue-700");
+            orderResult.classList.add("text-red-700");
+            return;
+          }
+        } else {
+          orderResult.innerHTML = `<i class="ph ph-x-circle text-lg mr-2"></i>Network Error: No response received from server.`;
+          orderResult.classList.remove("text-green-700","text-blue-700");
+          orderResult.classList.add("text-red-700");
+          return;
+        }
+        if (json.order) {
+          orderResult.innerHTML = `<i class="ph ph-check-circle text-lg mr-2"></i>Order placed! Order ID: ${json.order}`;
+          orderResult.classList.remove("text-red-700","text-blue-700");
+          orderResult.classList.add("text-green-700");
+        } else if (json.error) {
+          orderResult.innerHTML = `<i class="ph ph-x-circle text-lg mr-2"></i>API Error: ${json.error}`;
+          orderResult.classList.remove("text-green-700","text-blue-700");
+          orderResult.classList.add("text-red-700");
+        } else {
+          orderResult.innerHTML = `<i class="ph ph-x-circle text-lg mr-2"></i>Unknown API response.`;
+          orderResult.classList.remove("text-green-700","text-blue-700");
+          orderResult.classList.add("text-red-700");
+        }
+      } catch (err) {
+        orderResult.innerHTML = `<i class="ph ph-x-circle text-lg mr-2"></i>Network Error: ${err}`;
+        orderResult.classList.remove("text-green-700","text-blue-700");
+        orderResult.classList.add("text-red-700");
+      }
+    });
+  </script>
+</body>
+</html>
