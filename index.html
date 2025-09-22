@@ -19,7 +19,8 @@
       <h2 class="text-2xl font-bold text-blue-700 text-center">SMM Panel</h2>
       <i class="ph ph-globe-simple text-3xl text-blue-500 ml-2"></i>
     </div>
-    <form id="smmForm" autocomplete="off">
+    <form id="smmForm" autocomplete="off" onsubmit="return false;">
+      <!-- Form fields unchanged -->
       <label for="category" class="block mb-2 font-medium text-gray-700 flex items-center">
         <i class="ph ph-list text-lg mr-2"></i>Category
       </label>
@@ -51,23 +52,18 @@
         <i class="ph ph-number-square-seven text-lg mr-2"></i>Quantity
       </label>
       <input type="number" id="qty" min="1" placeholder="Enter quantity" class="w-full mb-2 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring focus:ring-blue-200" />
-      
-      <!-- Optional fields -->
       <label for="comments" class="block mb-2 font-medium text-gray-700 flex items-center">
         <i class="ph ph-chat text-lg mr-2"></i>Comments (optional)
       </label>
       <input type="text" id="comments" placeholder="Comments" class="w-full mb-2 px-3 py-2 rounded-lg border border-gray-300" />
-
       <label for="runs" class="block mb-2 font-medium text-gray-700 flex items-center">
         <i class="ph ph-repeat text-lg mr-2"></i>Runs (optional)
       </label>
       <input type="number" id="runs" min="1" placeholder="Runs" class="w-full mb-2 px-3 py-2 rounded-lg border border-gray-300" />
-
       <label for="interval" class="block mb-2 font-medium text-gray-700 flex items-center">
         <i class="ph ph-clock text-lg mr-2"></i>Interval (optional, minutes)
       </label>
       <input type="number" id="interval" min="1" placeholder="Interval in minutes" class="w-full mb-2 px-3 py-2 rounded-lg border border-gray-300" />
-
       <div id="minWarning" class="mb-2 text-red-700 font-bold hidden flex items-center"><i class="ph ph-warning text-lg mr-2"></i><span></span></div>
       <div id="formError" class="mb-2 text-red-700 font-bold hidden flex items-center"><i class="ph ph-x-circle text-lg mr-2"></i><span></span></div>
       <div id="orderResult" class="mb-2 text-green-700 font-bold hidden flex items-center"><i class="ph ph-check-circle text-lg mr-2"></i><span></span></div>
@@ -202,8 +198,10 @@
 
     loadCategoriesAndServices();
 
+    // Robust submit handler
     document.getElementById('smmForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
+      e.preventDefault(); // Prevents all default browser form submission!
+
       const categoryVal = document.getElementById("category").value;
       const serviceVal = document.getElementById("service").value;
       const linkVal = document.getElementById("link").value.trim();
@@ -226,13 +224,12 @@
         formError.classList.add("hidden");
       }
 
-      // Gather base params for API
+      // Always use 'url' for API request, but support 'link' from frontend.
       const requestBody = {
         service: selectedServiceId,
-        url: linkVal,
+        url: linkVal, // Use url for API, not link
         quantity: qtyVal
       };
-      // Optional params
       const commentsVal = document.getElementById("comments")?.value?.trim();
       const runsVal = document.getElementById("runs")?.value?.trim();
       const intervalVal = document.getElementById("interval")?.value?.trim();
@@ -240,22 +237,25 @@
       if (runsVal) requestBody.runs = runsVal;
       if (intervalVal) requestBody.interval = intervalVal;
 
+      console.log("Request body (sent to API):", requestBody);
+
       orderResult.innerHTML = `<i class="ph ph-clock-countdown text-lg mr-2"></i>Placing order...`;
       orderResult.classList.remove("hidden");
       orderResult.classList.remove("text-green-700","text-red-700");
       orderResult.classList.add("text-blue-700");
 
       try {
-        // USE YOUR VERCEL ENDPOINT HERE:
-        const response = await fetch("https://smm-proxy-p3uhzdngg-harldgreats-projects.vercel.app/api/smm-order", {
+        const response = await fetch("https://smm-proxy-1d34du808-harldgreats-projects.vercel.app/api/smm-order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(requestBody)
         });
+
         let json;
         if (response && response.json) {
           try {
             json = await response.json();
+            console.log("API response JSON:", json);
           } catch (err) {
             let text = "";
             if (response && response.text) {
@@ -265,12 +265,14 @@
                 text = "No response text available.";
               }
             }
+            console.error("API response parse error:", err, text);
             orderResult.innerHTML = `<i class="ph ph-x-circle text-lg mr-2"></i>Network/API Error: ${err} ${text}`;
             orderResult.classList.remove("text-green-700","text-blue-700");
             orderResult.classList.add("text-red-700");
             return;
           }
         } else {
+          console.error("No response object from fetch!");
           orderResult.innerHTML = `<i class="ph ph-x-circle text-lg mr-2"></i>Network Error: No response received from server.`;
           orderResult.classList.remove("text-green-700","text-blue-700");
           orderResult.classList.add("text-red-700");
@@ -290,13 +292,16 @@
           orderResult.classList.add("text-red-700");
         }
       } catch (err) {
+        console.error("Fetch/network error:", err);
         orderResult.innerHTML = `<i class="ph ph-x-circle text-lg mr-2"></i>Network Error: ${err}`;
         orderResult.classList.remove("text-green-700","text-blue-700");
         orderResult.classList.add("text-red-700");
       }
     });
+
+    // Extra: Prevent any browser form submission (double safety)
+    document.getElementById('smmForm').onsubmit = function() { return false; };
+
   </script>
 </body>
-
 </html>
-
